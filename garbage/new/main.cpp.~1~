@@ -1,0 +1,280 @@
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_ttf.h>
+#include <iostream>
+
+//Global Variables
+SDL_Window* window;
+SDL_Renderer* renderer;
+
+//Button variables
+SDL_Rect button;
+int buttonW = 200;
+int buttonH = 40;
+bool buttonClicked = false;
+bool buttonHovered = false;
+
+//Text variables
+TTF_Font* font;
+SDL_Surface* textSurface;
+SDL_Texture* textTexture;
+SDL_Rect textRect;
+
+//Function prototypes
+void init();
+void createButton();
+void createText();
+void handleEvents();
+
+//void drawButton()
+//{
+// draws a rounded box with…
+// corner radius of ‘r’
+// width of ‘w’
+// and height of ‘h’
+// draws the box right and down of…
+// x-offset xo
+// y-offset yo
+
+// returns 0 if 2*r is bigger than w or h
+// and draws nothing
+// returns 1 on success
+
+int fill_rounded_box_b( SDL_Surface* dst, int xo, int yo, int w, int h, int r, Uint32 color )
+{
+  int yd = dst->pitch / dst->format->BytesPerPixel;
+  Uint32* pixels = NULL;
+
+  int x,y,i,j;
+  int rpsqrt2 = (int) (r / sqrt( 2 ) );
+  double r2 = r*r;
+
+  w /= 2;
+  h /= 2;
+
+  xo += w;
+  yo += h;
+
+  w -= r;
+  h -= r;
+
+  if( w < 0 || h < 0 )
+  return 0;
+
+  SDL_LockSurface( dst );
+  pixels = (Uint32*)( dst->pixels );
+
+  int sy = (yo-h)*yd;
+  int ey = (yo+h)*yd;
+  int sx = (xo-w);
+  int ex = (xo+w);
+  for( i = sy; i<=ey; i+=yd )
+  for( j = sx-r; j<=ex+r; j++ )
+  pixels[i+j] = color;
+
+  int d = -r;
+  int x2m1 = -1;
+  y = r;
+  for( x=0; x <= rpsqrt2; x++ ) {
+  x2m1 += 2;
+  d+= x2m1;
+  if( d >= 0 ) {
+  y–;
+  d -= (y*2);
+  }
+
+  for( i=sx-x; i<=ex+x; i++ )
+    pixels[sy-y*yd + i] = color;
+
+  for( i=sx-y; i<=ex+y; i++ )
+    pixels[sy-x*yd + i] = color;
+
+  for( i=sx-y; i<=ex+y; i++ )
+    pixels[ey+x*yd + i] = color;
+
+  for( i=sx-x; i<=ex+x; i++ )
+    pixels[ey+y*yd + i] = color;
+  }
+  SDL_UnlockSurface( dst );
+  return 1;
+}
+//}
+
+int main(int argc, char* argv[])
+{
+	//Initialize SDL
+	init();
+
+	//Create the button
+	createButton();
+
+  //Create the text
+	createText();
+
+	//Game loop
+	while(true)
+	{
+		//Handle events
+		handleEvents();
+
+		//Clear the window
+    SDL_SetRenderDrawColor(renderer, 207, 216, 220, 255);
+		SDL_RenderClear(renderer);
+
+
+    //fill_rounded_box_b(renderer, 12, 12, 50, 60, 6);
+    //Set button position and size
+    button.x = (640 - buttonW) / 2;
+    button.y = (480 - buttonH) / 2;
+    button.w = buttonW;
+    button.h = buttonH;
+    button.r = 10; // set corner radius
+
+    //Draw the button
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawRect(renderer, &button);
+
+    // rounded button
+    //int buttonRadius = 20;
+    //SDL_Point center = {(button.x + button.w/2), (button.y + button.h/2)};
+    //for(int i = 0; i < 360; i++)
+    //{
+    //	float angle = i * 3.14159 / 180;
+    //	SDL_Point point;
+    //	point.x = center.x + buttonRadius * cos(angle);
+    //	point.y = center.y + buttonRadius * sin(angle);
+    //	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // red
+    //	SDL_RenderDrawPoint(renderer, point.x, point.y);
+    //}
+
+   	////Draw the button
+    //if(buttonHovered)
+    //{
+    //  std::cout << "Button hovered!" << std::endl;
+    //  SDL_SetRenderDrawColor(renderer, 76, 175, 80, 255);
+
+    //  if(buttonClicked)
+    //  {
+    //    std::cout << "Button clicked!" << std::endl;
+    //    SDL_SetRenderDrawColor(renderer, 255, 87, 51, 255);
+    //  }
+    //  else
+    //  {
+    //    SDL_SetRenderDrawColor(renderer, 80, 200, 120, 255);
+    //  }
+    //}
+    //else
+    //{
+    //  std::cout << "Button unhovered!" << std::endl;
+    //  SDL_SetRenderDrawColor(renderer, 102, 187, 106, 255);
+    //}
+
+		//SDL_RenderFillRect(renderer, &button);
+
+		//Draw the text
+		SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+		//Update the window
+    SDL_RenderPresent(renderer);
+	}
+
+  //Cleanup
+	SDL_DestroyWindow(window);
+	SDL_DestroyRenderer(renderer);
+	SDL_FreeSurface(textSurface);
+	SDL_DestroyTexture(textTexture);
+	SDL_Quit();
+
+	return 0;
+}
+
+void init()
+{
+  //Initialize SDL
+	SDL_Init(SDL_INIT_EVERYTHING);
+
+	//Initialize TTF
+	TTF_Init();
+
+	//Create window
+	window = SDL_CreateWindow("Button Test",
+							  SDL_WINDOWPOS_UNDEFINED,
+							  SDL_WINDOWPOS_UNDEFINED,
+							  640,
+							  480,
+							  0);
+
+	//Create renderer
+	renderer = SDL_CreateRenderer(window, -1, 0);
+}
+
+void createButton()
+{
+	//Set button position and size
+	button.x = (640 - buttonW) / 2;
+	button.y = (480 - buttonH) / 2;
+	button.w = buttonW;
+	button.h = buttonH;
+}
+
+void createText()
+{
+	//Load font
+	font = TTF_OpenFont("assets/fonts/Ubuntu-Light.ttf", 30);
+
+	//Create text surface
+	textSurface = TTF_RenderText_Solid(font, "Click Me!", {23, 23, 42});
+
+	//Create text texture
+	textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+	//Set text position
+	textRect.x = (640 - textSurface->w) / 2;
+	textRect.y = (480 - textSurface->h) / 2;
+	textRect.w = textSurface->w;
+	textRect.h = textSurface->h;
+}
+
+void handleEvents()
+{
+	SDL_Event event;
+	while(SDL_PollEvent(&event))
+	{
+		switch(event.type)
+		{
+      case SDL_MOUSEMOTION:
+        if(event.button.x > button.x &&
+				   event.button.x < button.x + button.w &&
+				   event.button.y > button.y &&
+				   event.button.y < button.y + button.h)
+				{
+          buttonHovered = true;
+				}
+        else
+        {
+          buttonHovered = false;
+        }
+      break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				if(event.button.x > button.x &&
+				   event.button.x < button.x + button.w &&
+				   event.button.y > button.y &&
+				   event.button.y < button.y + button.h)
+				{
+					buttonClicked = true;
+				}
+				break;
+
+      case SDL_MOUSEBUTTONUP:
+        buttonClicked = false;
+      break;
+
+			case SDL_QUIT:
+				exit(0);
+				break;
+			default:
+				break;
+		}
+	}
+}
